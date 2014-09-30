@@ -15,13 +15,13 @@
 > handleB (CodeBlock as s)
 >       |  Just as' <- unwrappable as = let Pandoc _ bs = readDoc s
 >                                        in Div as' bs
-> handleB x = walk handleB x
+> handleB x = x
 
 > handleI :: Inline -> Inline
 > handleI (Code as s)
 >       |  Just as' <- unwrappable as = let inlines = query singleton (readDoc s)
 >                                        in Span as' (toList inlines)
-> handleI x = walk handleI x
+> handleI x = x
 
 > unwrappable :: Attr -> Maybe Attr
 > unwrappable (x, ys, z) = case partition (== "unwrap") ys of
