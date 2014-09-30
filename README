@@ -1,0 +1,128 @@
+# PanHandler #
+
+This software is released into the Public Domain
+ -- Chris Warburton <chriswarbo@gmail.com>, 2014-09-30
+
+## Intro ##
+
+PanHandler is a simple Haskell script using PanDoc. It allows code blocks in
+PanDoc-compatible documents, eg. Markdown, to be "unwrapped" and become part of
+the overall document.
+
+Any code blocks or spans with an "unwrap" class will have their contents parsed
+using Pandoc, then spliced into the document (inside a Div or Span).
+
+For example, we can unwrap the following HTML:
+
+    Mumble mumble
+
+    ```{.unwrap}
+    <p>Some HTML</p>
+
+     - A Markdown
+     - List
+    ```
+
+    Groan groan
+
+To give:
+
+    Mumble mumble
+
+    <p>Some HTML</p>
+
+     - A Markdown
+     - List
+
+    Groan groan
+
+## Usage Notes ##
+
+### Wrappers ###
+
+Code blocks will become Pandoc-native Div blocks, inline code will become
+Pandoc-native Span elements. These won't affect rendering, but they may affect
+traversals, eg. other Pandoc scripts and CSS.
+
+### Attributes ###
+
+All of the code block's attributes except for the "unwrap" class will be applied
+to the resulting Div or Span:
+
+```{#foo .bar .upper .unwrap baz="quux" something="nice"}
+Some *emphasised* text
+```
+
+Will become:
+
+<div id="foo" class="bar upper" baz="quux" something="nice">
+Some *emphasised* text
+</div>
+
+### Replacement Order ###
+
+PanHandler operates top-down, so blocks can be nested. For example:
+
+    Level 1A
+
+    `````{.unwrap}
+    Level 2A
+
+    ```{.unwrap}
+    Level 3A
+    ```
+
+    ```
+    Level 3B
+    ```
+
+    Level 2B
+    `````
+
+    Level 1B
+
+Will become:
+
+    Level 1A
+
+    Level 2A
+
+    Level 3A
+
+    ```
+    Level 3B
+    ```
+
+    Level 2B
+
+    Level 1B
+
+All code blocks are unwrapped first, then all inline code.
+
+### Inline Snippets ###
+
+Here's an example of PanHandler working on inline code snippets:
+
+    I hope the following is `*emphasised*`{.unwrap}.
+
+Will become:
+
+    I hope the following is *emphasised*.
+
+### No Straddling ###
+
+PanHandler operates by splicing syntax trees together, *not* via text
+replacement.
+
+One consequence is that formatting cannot 'straddle two levels' of a document.
+As an example, if we put asterisks inside and outside a code snippet:
+
+    This will *not `be* emphasised`{.unwrap}.
+
+They will remain as asterisks:
+
+    This will \*not be\* emphasised.
+
+They *will not* join together for emphasis, like this:
+
+    This will *not be* emphasised.
