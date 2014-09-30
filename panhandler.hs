@@ -1,3 +1,5 @@
 module Main where
+import Control.Applicative
 import PanHandler
-main = getContents >>= processDoc >>= putStr
+
+main = processDoc <$> getContents >>= putStr
