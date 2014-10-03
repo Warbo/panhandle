@@ -14,7 +14,7 @@
 > handleB :: Block -> Block
 > handleB (CodeBlock as s)
 >       |  Just as' <- unwrappable as = let Pandoc _ bs = readDoc s
->                                        in Div as' bs
+>                                        in Div as bs
 > handleB x = x
 
 > handleI :: Inline -> Inline

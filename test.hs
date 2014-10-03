@@ -10,7 +10,7 @@ import Text.Pandoc.Walk (walk, query)
 -- Tests
 
 pNoUnwrapRemain d = query p (transform d) == mempty
-  where p (CodeBlock (_, cs, _) _) = cs --Any ("unwrap" `elem` cs)
+  where p (CodeBlock (_, cs, _) _) = Any ("unwrap" `elem` cs)
         p _                        = mempty
 
 pNoInlineRemain d = query p (transform d) == mempty
