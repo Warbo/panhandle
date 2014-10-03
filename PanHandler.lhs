@@ -25,7 +25,7 @@
 
 > unwrappable :: Attr -> Maybe Attr
 > unwrappable (x, ys, z) = case partition (== "unwrap") ys of
->                               (_:_, ys') -> Just (x, ys', z)
+>                               (_:_, ys') -> Just (x, ys, z)
 >                               _          -> Nothing
 
 Use Pandoc to parse, traverse and pretty-print our documents
