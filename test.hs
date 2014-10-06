@@ -1,108 +1,244 @@
-import Control.Applicative
-import Data.Monoid
-import PanHandler
-import Test.QuickCheck
-import Test.QuickCheck.Gen
-import Text.Pandoc
-import Text.Pandoc.Builder
-import Text.Pandoc.Walk (walk, query)
+{-# Language ExistentialQuantification #-}
+import           Control.Applicative
+import           Data.List (sort)
+import qualified Data.Map as DM
+import           Data.Monoid
+import           PanHandler
+import           Test.QuickCheck
+import           Test.QuickCheck.Gen
+import           Text.Pandoc
+import           Text.Pandoc.Builder
+import           Text.Pandoc.Shared
+import           Text.Pandoc.Walk (walk, query)
+import           Tests.Arbitrary
 
--- Tests
+data T = forall a. Testable a => T a
 
-pNoUnwrapRemain d = query p (transform d) == mempty
-  where p (CodeBlock (_, cs, _) _) = Any ("unwrap" `elem` cs)
-        p _                        = mempty
+instance Testable T where
+  property (T x) = property x
 
-pNoInlineRemain d = query p (transform d) == mempty
-  where p (Code (_, cs, _) _) = Any ("unwrap" `elem` cs)
-        p _                   = mempty
+tests = DM.fromList [
+  -- Arbitrary stability
 
-test = let m & p = m >> quickCheck p
-        in quickCheck pNoUnwrapRemain &
-                      pNoInlineRemain
+  ("enoughStableInlines", T $
+   \i -> stable (doc (fromList [Plain i])) ==> label (show (count i)) True)]
+
+  --("enoughStableBlocks", T $
+  -- \b -> stable (doc (fromList b)) ==> True),
+
+  --("enoughStableDocs", T $
+  -- \d -> stable d ==> True)]
+
+  -- noUnwrap
+
+t2 =  [("noUnwrapIgnoresMissing", T $
+   \i cs as -> noUnwrap (i, filter (/= "unwrap") cs, as) == Nothing),
+
+  ("noUnwrapFindsUnwrap", T $
+   \i pre post as -> noUnwrap (i, pre ++ ["unwrap"] ++ post, as) /= Nothing),
+
+  ("noUnwrapRemovesUnwrap", T $
+   \i pre post as -> let p x = (i, pre ++ x, as)
+                      in noUnwrap (p ("unwrap":post)) == Just (p post)),
+
+  -- bAttrs
+
+  ("bAttrsSkipsNonCode", T $
+   \b -> not (bIsCode b) ==> bAttrs b == Nothing),
+
+  ("bAttrsGetsAttrs", T $
+   \as s -> bAttrs (CodeBlock as s) == Just as),
+
+  -- bUnwrap
+
+  ("bUnwrapMakesDivs", T $
+   \i c c' a s -> let at x = (i, c ++ x, a)
+                      p (Div a' _) = a' == at c'
+                      p _          = False
+                   in p (bUnwrap (CodeBlock (at ("unwrap":c')) s))),
+
+  ("pandocNormalises", T $
+   \b -> stable b ==> True)]{-,
+
+  {- readMarkDown and writeMarkdown aren't quite inverse, so we can't say:
+
+     bUnwrap (CodeBlock _ (writeDoc . doc . fromList bs)) == Div _ bs
+
+     Instead, we send both sides through a read/write cycle to normalise them.
+   -}
+  ("bUnwrapInterpretsCode", T $
+   \b' i c c' a -> let b    = normalize b'
+                       d    = doc . fromList
+                       cb   = CodeBlock (at ("unwrap":c')) (writeDoc (d b))
+                       at x = (i, c ++ x, a)
+                       lhs  = normalise (d [bUnwrap cb])
+                       rhs  = normalise (d [Div (at c') b])
+                    in stable (d b) ==> lhs == rhs),
+
+  ("bUnwrapLeavesWrapped", T $
+   \i cs as s -> let cb = CodeBlock (i, filter (/= "unwrap") cs, as) s
+                  in bUnwrap cb == cb),
+
+  ("bUnwrapLeavesRest", T $
+   \b -> (bUnwrap b == b) || ((noUnwrap <$> bAttrs b) /= Nothing)),
+
+  -- transform
+
+  ("transformRemovesUnwrapBlocks", T $
+   not . ("unwrap" `elem`) . query (maybe [] classes . bAttrs) . transform),
+
+  ("transformRemovesUnwrapInlines", T $
+   not . ("unwrap" `elem`) . query (maybe [] classes . iAttrs) . transform)]
+-}
+
+testWith f = let go name test = (putStrLn ("Testing " ++ name) >> f test >>)
+              in DM.foldWithKey go (return ()) tests
+
+test = testWith quickCheck
+
+bIsCode :: Block -> Bool
+bIsCode (CodeBlock _ _) = True
+bIsCode _               = False
+
+iIsCode :: Inline -> Bool
+iIsCode (Code _ _) = True
+iIsCode _          = False
+
+classes :: Attr -> [String]
+classes (_, cs, _) = cs
+
+normalise :: Pandoc -> Pandoc
+normalise = dCycle . dCycle
+
+dCycle :: Pandoc -> Pandoc
+dCycle = readDoc . writeDoc
+
+stable :: Pandoc -> Bool
+stable d = dCycle (dCycle d) == dCycle (dCycle (dCycle d))
+
+count d = bCount d + iCount d
+
+bCount x = let Sum n = query ((\b -> Sum 1) :: Block  -> Sum Int) x in n
+iCount x = let Sum n = query ((\i -> Sum 1) :: Inline -> Sum Int) x in n
 
 -- Arbitrary instances (sized, to prevent recursive trees exploding)
 
 arb :: Arbitrary a => Gen a
 arb =  arbitrary
 
+accum :: Int -> (Int -> Gen a) -> Gen [a]
+accum 0 _ = pure []
+accum n a = do n' <- choose (1, n)
+               x  <- a (abs n')
+               xs <- accum (abs (n - n')) a
+               return (x:xs)
+
+accumP :: (Int -> Gen a) -> (Int -> Gen b) -> Int -> Gen ([a], [b])
+accumP l r n = do n' <- choose (0, n)
+                  l' <- accum n'     l
+                  r' <- accum (n-n') r
+                  pure (l', r')
+
+down :: Int -> Int
+down n = n `div` 10
+
 aA :: Int -> Gen Attr
-aA n = do let n' = n `div` 2
+aA n = do let n' = down n
           identity    <- arb
-          (pre, post) <- aP (aL (const arb))
-                            (aL (const arb)) n'
-          attrs       <-     aL (const arb)  n'
+          (pre, post) <- accumP (const arb) (const arb) n
+          attrs       <- accum n (const arb)
           unwrap      <- frequency [(10, pure []),
                                     (1,  pure ["unwrap"])]
           return (identity, pre ++ unwrap ++ post, attrs)
 
 aB :: Int -> Gen Block
-aB n = let n' = n `div` 2
-        in oneof [pure HorizontalRule                                     ,
-                  pure Null                                               ,
-                  BlockQuote     <$> aL aB n'                             ,
-                  BulletList     <$> aL (aL aB) n'                        ,
-                  DefinitionList <$> aL (aP (aL aI)
-                                            (aL (aL aB)))
-                                        n'                                ,
-                  Para           <$> aL aI n'                             ,
-                  Plain          <$> aL aI n'                             ,
-                  CodeBlock      <$> aA n'          <*> aS n'             ,
-                  Div            <$> aA n'          <*> aL aB n'          ,
-                  RawBlock       <$> arb              <*> arb                 ,
-                  OrderedList    <$> arb              <*> aL (aL aB) n'     ,
-                  Header         <$> choose (0, 10) <*> aA n'
-                                                    <*> aL aI n'          ,
-                  Table          <$> aL aI n'       <*> arb
-                                                    <*> aL (const (choose (0, 1))) n'
-                                                    <*> aL     (aL aB)  n'
-                                                    <*> aL (aL (aL aB)) n']
+aB n | n < 2 = elements [HorizontalRule, Null]
+aB n = do n' <- choose (0, n)
+          let acc = accum (n-1)
+          oneof [BlockQuote     <$> acc aB,
+                 BulletList     <$> acc (`accum` aB),
+                 DefinitionList <$> acc (accumP aI (`accum` aB)),
+                 Para           <$> acc aI,
+                 Plain          <$> acc aI,
+                 CodeBlock      <$> aA n'          <*> aS n',
+                 Div            <$> aA n'          <*> acc aB,
+                 RawBlock       <$> arb            <*> arb,
+                 OrderedList    <$> arb            <*> acc (`accum` aB),
+                 Header         <$> choose (0, 10) <*> aA n' <*> acc aI,
+                 aT (n-1)]
+
+diffs = let diffs' n [] = []
+            diffs' n (x:xs) = (x - n) : diffs' x xs
+         in diffs' 0
+
+dist n 0 = pure []
+dist n m = do ns' <- vectorOf m (choose (0, n))
+              let ns = sort ns'
+              pure (diffs ns)
+
+aT n = do ns <- dist n 5
+          let (a:b:c:d:e:[]) = map accum ns
+              as   = a $ aI
+              bs   = b $ const arb
+              cs   = c $ const (choose (0, 1))
+              ds   = d $ (`accum` aB)
+              es   = e $ (`accum` (`accum` aB))
+          Table <$> as <*> bs <*> cs <*> ds <*> es
 
 aC :: Int -> Gen Citation
-aC n = let n' = n `div` 2
-        in Citation <$> arb <*> aL aI n' <*> aL aI n' <*> arb <*> choose (0, 100)
-                                                          <*> choose (0, 100)
+aC n = do (l, r) <- accumP aI aI (n-1)
+          Citation <$> arb <*> pure l <*> pure r <*> arb <*> choose (0, 100)
+                                                         <*> choose (0, 100)
 
 aD :: Int -> Gen Pandoc
-aD n = doc . fromList <$> aL aB n
+aD n = doc . fromList <$> accum n aB
 
 aI :: Int -> Gen Inline
-aI n = let n' = n `div` 2
-        in oneof [pure Space                            ,
-                  pure LineBreak                        ,
-                  Emph        <$> aL aI n'              ,
-                  Note        <$> aL aB n'              ,
-                  SmallCaps   <$> aL aI n'              ,
-                  Str         <$> arb                     ,
-                  Strong      <$> aL aI n'              ,
-                  Strikeout   <$> aL aI n'              ,
-                  Superscript <$> aL aI n'              ,
-                  Subscript   <$> aL aI n'              ,
-                  Cite        <$> aL aC n'  <*> aL aI n',
-                  Code        <$> aA n'     <*> arb       ,
-                  Image       <$> aL aI n'  <*> arb       ,
-                  Link        <$> aL aI n'  <*> arb       ,
-                  Math        <$> arb         <*> arb       ,
-                  Quoted      <$> arb         <*> aL aI n',
-                  RawInline   <$> arb         <*> arb       ,
-                  Span        <$> aA n'     <*> aL aI n']
-
-aL :: (Int -> Gen a) -> Int -> Gen [a]
-aL a n = let l = (:) <$> (a (n `div` 2)) <*> l
-          in take <$> choose (0, n) <*> l
-
-aP :: (Int -> Gen a) -> (Int -> Gen b) -> Int -> Gen (a, b)
-aP l r n = let n' = n `div` 2
-            in (,) <$> l n' <*> r n'
+aI n | n < 2 = elements [Space, LineBreak]
+aI n = do l <- choose (0, n)
+          let m    = n - l
+              acc  = accum (n-1)
+              accL = accum l
+              accM = accum m
+          oneof [Emph        <$> acc aI,
+                 --Note        <$> acc aB,
+                 SmallCaps   <$> acc aI,
+                 Str         <$> arb,
+                 Strong      <$> acc aI,
+                 Strikeout   <$> acc aI,
+                 Superscript <$> acc aI,
+                 Subscript   <$> acc aI,
+                 Cite        <$> accL aC <*> accM aI,
+                 Code        <$> aA n    <*> arb,
+                 Image       <$> acc aI  <*> arb,
+                 Link        <$> acc aI  <*> arb,
+                 Math        <$> arb     <*> arb,
+                 Quoted      <$> arb     <*> acc aI,
+                 RawInline   <$> arb     <*> arb,
+                 Span        <$> aA n    <*> acc aI]
 
 aS :: Int -> Gen String
-aS n = oneof [arb, writeDoc <$> aD (n `div` 2)]
+aS n = oneof [arb, writeDoc <$> aD n]
 
 instance Arbitrary Alignment where
   arbitrary = elements [AlignLeft, AlignRight, AlignCenter, AlignDefault]
 
 instance Arbitrary Block where
   arbitrary = sized aB
+  shrink b = case b of
+                  HorizontalRule       -> []
+                  Null                 -> []
+                  BlockQuote xs        -> BlockQuote     <$> shrink xs
+                  BulletList xs        -> BulletList     <$> shrink xs
+                  DefinitionList xs    -> DefinitionList <$> shrink xs
+                  Para xs              -> Para           <$> shrink xs
+                  Plain xs             -> Plain          <$> shrink xs
+                  CodeBlock xs y       -> CodeBlock      <$> shrink xs <*> shrink y
+                  Div xs ys            -> Div            <$> shrink xs <*> shrink ys
+                  RawBlock x y         -> RawBlock x     <$> shrink y
+                  OrderedList x ys     -> OrderedList x  <$> shrink ys
+                  Header x y zs        -> Header x y     <$> shrink zs
+                  Table as bs cs ds es -> []
 
 instance Arbitrary Citation where
   arbitrary = sized aC

@@ -1,37 +1,64 @@
 > module PanHandler where
 
 > import Control.Applicative
-> import Data.List
 > import Data.Maybe
-> import System.Directory
-> import System.IO.Temp
-> import System.Process
 > import Text.Pandoc
-> import Text.Pandoc.Builder (singleton, toList)
-> import Text.Pandoc.Generic (topDown)
 > import Text.Pandoc.Walk (walk, query)
 
-> handleB :: Block -> Block
-> handleB (CodeBlock as s)
->       |  Just as' <- unwrappable as = let Pandoc _ bs = readDoc s
->                                        in Div as bs
-> handleB x = x
+Generic (Inline and Block) functions
 
-> handleI :: Inline -> Inline
-> handleI (Code as s)
->       |  Just as' <- unwrappable as = let inlines = query singleton (readDoc s)
->                                        in Span as' (toList inlines)
-> handleI x = x
+> noUnwrap :: Attr -> Maybe Attr
+> noUnwrap (x, ys, zs) = if "unwrap" `elem` ys
+>                           then Just (x, filter (/= "unwrap") ys, zs)
+>                           else Nothing
 
-> unwrappable :: Attr -> Maybe Attr
-> unwrappable (x, ys, z) = case partition (== "unwrap") ys of
->                               (_:_, ys') -> Just (x, ys, z)
->                               _          -> Nothing
+Block-level functions
+
+> bAttrs :: Block -> Maybe Attr
+> bAttrs (CodeBlock as _) = Just as
+> bAttrs _                = Nothing
+
+> bNoUnwrap :: Block -> Maybe Attr
+> bNoUnwrap b = bAttrs b >>= noUnwrap
+
+> bCode :: Block -> Maybe String
+> bCode (CodeBlock _ c) = Just c
+> bCode _               = Nothing
+
+> blocks :: Pandoc -> [Block]
+> blocks (Pandoc _ bs) = bs
+
+> bUnwrap :: Block -> Block
+> bUnwrap b = let bs      = blocks <$> (readDoc <$> bCode b)
+>                 wrapped = Div    <$> bNoUnwrap b <*> bs
+>              in fromMaybe b wrapped
+
+Inline-level functions
+
+> iAttrs :: Inline -> Maybe Attr
+> iAttrs (Code as _) = Just as
+> iAttrs _           = Nothing
+
+
+> iNoUnwrap :: Inline -> Maybe Attr
+> iNoUnwrap b = iAttrs b >>= noUnwrap
+
+> iCode :: Inline -> Maybe String
+> iCode (Code _ c) = Just c
+> iCode _          = Nothing
+
+> inlines :: Pandoc -> [Inline]
+> inlines = query (: [])
+
+> iUnwrap :: Inline -> Inline
+> iUnwrap i = let is      = inlines <$> (readDoc <$> iCode i)
+>                 wrapped = Span    <$> iNoUnwrap i <*> is
+>              in fromMaybe i wrapped
 
 Use Pandoc to parse, traverse and pretty-print our documents
 
 > transform :: Pandoc -> Pandoc
-> transform = topDown handleI . topDown handleB
+> transform = topDown iUnwrap . topDown bUnwrap
 
 > readDoc :: String -> Pandoc
 > readDoc = readMarkdown def
