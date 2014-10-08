@@ -5,12 +5,14 @@ This software is released into the Public Domain
 
 ## Intro ##
 
-PanHandler is a simple Haskell script using PanDoc. It allows code blocks in
-PanDoc-compatible documents, eg. Markdown, to be "unwrapped" and become part of
-the overall document.
+PanHandler is a simple Haskell script using PanDoc. It allows code blocks and
+lines in PanDoc-compatible documents, eg. Markdown, to be "unwrapped" and become
+part of the overall document.
 
-Any code blocks or spans with an "unwrap" class will have their contents parsed
-using Pandoc, then spliced into the document (inside a Div or Span).
+Any code blocks or lines with an "unwrap" class will have their contents parsed
+using Pandoc, then spliced into the document (inside a Div or Span). Currently
+it is hard-coded to use Markdown, but I can add an option to override this on
+request.
 
 For example, we can unwrap the following HTML:
 
@@ -40,7 +42,7 @@ To give:
 
 ### Wrappers ###
 
-Code blocks will become Pandoc-native Div blocks, inline code will become
+Code blocks will become Pandoc-native Div blocks, code lines will become
 Pandoc-native Span elements. These won't affect rendering, but they may affect
 traversals, eg. other Pandoc scripts and CSS.
 
@@ -126,3 +128,23 @@ They will remain as asterisks:
 They *will not* join together for emphasis, like this:
 
     This will *not be* emphasised.
+
+### PanPipe ###
+
+PanHandler may be useful to you as a standalone script, but it was originally
+created to augment PanPipe. PanPipe can send the contents of code blocks to the
+stdin of a UNIX shell command, and dump the stdout back into the block.
+
+PanHandler allows these results to escape their blocks and become part of the
+document.
+
+### Testing ###
+
+PanHandler's tests are in `test-real.hs`. This script uses the Arbitrary
+instances from Pandoc's own test modules. Since these modules aren't exported as
+part of Pandoc, the `test.sh` script will download Pandoc's source for you and
+run the tests with those modules.
+
+Note that the tests use Pandoc's "native" format, since the readMarkdown and
+writeMarkdown functions aren't quite inverses of each other, which would cause a
+lot of false positive failures.
