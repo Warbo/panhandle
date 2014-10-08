@@ -29,9 +29,13 @@ Block-level functions
 > blocks (Pandoc _ bs) = bs
 
 > bUnwrap :: Block -> Block
-> bUnwrap b = let bs      = blocks <$> (readDoc <$> bCode b)
->                 wrapped = Div    <$> bNoUnwrap b <*> bs
->              in fromMaybe b wrapped
+> bUnwrap = bUnwrapWith readDoc
+
+> bUnwrapWith :: (String -> Pandoc) -> Block -> Block
+> bUnwrapWith f b = let bs      = blocks <$> (f <$> bCode b)
+>                       bs'     = map (bUnwrapWith f) <$> bs
+>                       wrapped = Div    <$> bNoUnwrap b <*> bs'
+>                    in fromMaybe b wrapped
 
 Inline-level functions
 
@@ -48,12 +52,18 @@ Inline-level functions
 > iCode _          = Nothing
 
 > inlines :: Pandoc -> [Inline]
-> inlines = query (: [])
+> inlines (Pandoc _ bs) = let f (Plain x) = x
+>                             f (Para  x) = x
+>                             f _         = []
+>                          in concatMap f bs
 
-> iUnwrap :: Inline -> Inline
-> iUnwrap i = let is      = inlines <$> (readDoc <$> iCode i)
->                 wrapped = Span    <$> iNoUnwrap i <*> is
->              in fromMaybe i wrapped
+> iUnwrapWith :: (String -> Pandoc) -> Inline -> Inline
+> iUnwrapWith f i = let is      = inlines <$> (f <$> iCode i)
+>                       is'     = map (iUnwrapWith f) <$> is
+>                       wrapped = Span    <$> iNoUnwrap i <*> is'
+>                    in fromMaybe i wrapped
+
+> iUnwrap = iUnwrapWith readDoc
 
 Use Pandoc to parse, traverse and pretty-print our documents
 
