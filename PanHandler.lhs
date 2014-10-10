@@ -29,13 +29,10 @@ Block-level functions
 > blocks (Pandoc _ bs) = bs
 
 > bUnwrap :: Block -> Block
-> bUnwrap = bUnwrapWith readDoc
-
-> bUnwrapWith :: (String -> Pandoc) -> Block -> Block
-> bUnwrapWith f b = let bs      = blocks <$> (f <$> bCode b)
->                       bs'     = map (bUnwrapWith f) <$> bs
->                       wrapped = Div    <$> bNoUnwrap b <*> bs'
->                    in fromMaybe b wrapped
+> bUnwrap b = let bs      = blocks <$> (readJSON def <$> bCode b)
+>                 bs'     = map bUnwrap <$> bs
+>                 wrapped = Div    <$> bNoUnwrap b <*> bs'
+>              in fromMaybe b wrapped
 
 Inline-level functions
 
@@ -57,24 +54,11 @@ Inline-level functions
 >                             f _         = []
 >                          in concatMap f bs
 
-> iUnwrapWith :: (String -> Pandoc) -> Inline -> Inline
-> iUnwrapWith f i = let is      = inlines <$> (f <$> iCode i)
->                       is'     = map (iUnwrapWith f) <$> is
->                       wrapped = Span    <$> iNoUnwrap i <*> is'
->                    in fromMaybe i wrapped
-
-> iUnwrap = iUnwrapWith readDoc
-
-Use Pandoc to parse, traverse and pretty-print our documents
+> iUnwrap :: Inline -> Inline
+> iUnwrap i = let is      = inlines <$> (readJSON def <$> iCode i)
+>                 is'     = map iUnwrap <$> is
+>                 wrapped = Span    <$> iNoUnwrap i <*> is'
+>              in fromMaybe i wrapped
 
 > transform :: Pandoc -> Pandoc
 > transform = topDown iUnwrap . topDown bUnwrap
-
-> readDoc :: String -> Pandoc
-> readDoc = readMarkdown def
-
-> writeDoc :: Pandoc -> String
-> writeDoc = writeMarkdown def
-
-> processDoc :: String -> String
-> processDoc = writeDoc . transform . readDoc

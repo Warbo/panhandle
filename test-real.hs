@@ -10,10 +10,8 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Gen
 import           Text.Pandoc
 import           Text.Pandoc.Builder
-import           Text.Pandoc.Readers.Native
 import           Text.Pandoc.Shared
 import           Text.Pandoc.Walk (walk, query)
-import           Text.Pandoc.Writers.Native
 import           Tests.Arbitrary
 
 data T = forall a. Testable a => T a
@@ -43,14 +41,13 @@ tests = DM.fromList [
    let at x         = (i, c ++ x, a)
        p (Div a' _) = a' == at c'
        p _          = False
-    in p (bUnwrapWith readNative (CodeBlock (at ("unwrap":c')) s))),
+    in p (bUnwrap (CodeBlock (at ("unwrap":c')) s))),
 
-  -- readNative . writeNative def == id, unlike eg. Markdown
   ("bUnwrap interprets code blocks", T $ \b i c c' a ->
-   let b'   = writeNative def . doc . fromList $ b
+   let b'   = writeJSON def . doc . fromList $ b
        cb   = CodeBlock (at ("unwrap":c')) b'
        at x = (i, c ++ x, a)
-    in bUnwrapWith readNative cb == Div (at c') b),
+    in bUnwrap cb == Div (at c') b),
 
   ("bUnwrap works recursively", T $ \b1 b2 b3 i c c' a ->
    let at x = (i, c ++ x ++ c', a)
@@ -58,10 +55,10 @@ tests = DM.fromList [
        cb2  = CodeBlock (at ["unwrap"]) s2
        s1   = d $ b1 ++ [cb2] ++ b2
        s2   = d $ b3
-       d    = writeNative def . doc . fromList
+       d    = writeJSON def . doc . fromList
        d1   = Div (at []) (b1 ++ [d2] ++ b2)
        d2   = Div (at []) b3
-    in bUnwrapWith readNative cb1 == d1),
+    in bUnwrap cb1 == d1),
 
   ("bUnwrap leaves non-unwrap code blocks", T $ \i cs as s ->
    let cb = CodeBlock (i, filter (/= "unwrap") cs, as) s
@@ -74,14 +71,13 @@ tests = DM.fromList [
    let at x          = (i, c ++ x, a)
        p (Span a' _) = a' == at c'
        p _           = False
-    in p (iUnwrapWith readNative (Code (at ("unwrap":c')) s))),
+    in p (iUnwrap (Code (at ("unwrap":c')) s))),
 
-  -- readNative . writeNative def == id, unlike eg. Markdown
   ("iUnwrap interprets code lines", T $ \i d c c' a ->
-   let i'   = writeNative def . doc . fromList $ [Plain i]
+   let i'   = writeJSON def . doc . fromList $ [Plain i]
        u    = Code (at ("unwrap":c')) i'
        at x = (d, c ++ x, a)
-    in iUnwrapWith readNative u == Span (at c') i),
+    in iUnwrap u == Span (at c') i),
 
   ("iUnwrap works recursively", T $ \i1 i2 i3 i c c' a ->
    let at x = (i, c ++ x ++ c', a)
@@ -89,10 +85,10 @@ tests = DM.fromList [
        cl2  = Code (at ["unwrap"]) s2
        s1   = d $ i1 ++ [cl2] ++ i2
        s2   = d $ i3
-       d is = writeNative def . doc . fromList $ [Plain is]
+       d is = writeJSON def . doc . fromList $ [Plain is]
        d1   = Span (at []) (i1 ++ [d2] ++ i2)
        d2   = Span (at []) i3
-    in iUnwrapWith readNative cl1 == d1),
+    in iUnwrap cl1 == d1),
 
   ("iUnwrap leaves non-unwrap code lines", T $ \i cs as s ->
    let c = Code (i, filter (/= "unwrap") cs, as) s
