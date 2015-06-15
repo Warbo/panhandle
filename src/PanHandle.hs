@@ -1,4 +1,5 @@
-module PanHandler where
+{-# LANGUAGE CPP #-}
+module PanHandle where
 
 import Control.Applicative
 import Data.Maybe
@@ -28,8 +29,17 @@ bCode _               = Nothing
 blocks :: Pandoc -> [Block]
 blocks (Pandoc _ bs) = bs
 
+readJson :: ReaderOptions -> String -> Pandoc
+#if MIN_VERSION_pandoc(1,14,0)
+readJson ro s = case readJSON ro s of
+                     Left  x -> error (show x)
+                     Right x -> x
+#else
+readJson = readJSON
+#endif
+
 bUnwrap :: Block -> Block
-bUnwrap b = let bs      = blocks <$> (readJSON def <$> bCode b)
+bUnwrap b = let bs      = blocks <$> (readJson def <$> bCode b)
                 bs'     = map bUnwrap <$> bs
                 wrapped = Div    <$> bNoUnwrap b <*> bs'
              in fromMaybe b wrapped
@@ -55,7 +65,7 @@ inlines (Pandoc _ bs) = let f (Plain x) = x
                          in concatMap f bs
 
 iUnwrap :: Inline -> Inline
-iUnwrap i = let is      = inlines <$> (readJSON def <$> iCode i)
+iUnwrap i = let is      = inlines <$> (readJson def <$> iCode i)
                 is'     = map iUnwrap <$> is
                 wrapped = Span    <$> iNoUnwrap i <*> is'
              in fromMaybe i wrapped

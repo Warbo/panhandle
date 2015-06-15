@@ -1,5 +1,5 @@
 module Main where
-import PanHandler
+import PanHandle
 import Text.Pandoc.JSON
 
 main = toJSONFilter transform
