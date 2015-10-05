@@ -1,4 +1,4 @@
-{ nixpkgs ? import <nixpkgs> {}, compiler ? "ghc7101" }:
+{ nixpkgs ? import <nixpkgs> {}, compiler ? "default" }:
 
 let
 
@@ -15,7 +15,7 @@ let
         src = ./.;
         isLibrary = false;
         isExecutable = true;
-        buildDepends = [
+        executableHaskellDepends = [
           base binary bytestring Cabal containers data-default directory
           extensible-exceptions filepath mtl network old-locale old-time
           pandoc pandoc-types parsec process random text time
@@ -25,7 +25,11 @@ let
         license = stdenv.lib.licenses.publicDomain;
       };
 
-  drv = pkgs.haskell.packages.${compiler}.callPackage f {};
+  haskellPackages = if compiler == "default"
+                      then pkgs.haskellPackages
+                      else pkgs.haskell.packages.${compiler};
+
+  drv = haskellPackages.callPackage f {};
 
 in
 
