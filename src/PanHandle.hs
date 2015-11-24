@@ -1,7 +1,9 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, RankNTypes #-}
 module PanHandle where
 
 import Control.Applicative
+import Data.Data
+import Data.Generics
 import Data.Maybe
 import Text.Pandoc
 import Text.Pandoc.Walk (walk, query)
@@ -37,19 +39,30 @@ readJson ro s = case readJSON ro s of
 #else
 readJson = readJSON
 #endif
-
-bUnwrap :: Block -> Block
+{-
+bUnwrap :: Block -> [Block]
 bUnwrap b = let bs      = blocks <$> (readJson def <$> bCode b)
-                bs'     = map bUnwrap <$> bs
-                wrapped = Div    <$> bNoUnwrap b <*> bs'
-             in fromMaybe b wrapped
+                bs'     = concatMap bUnwrap <$> bs
+                wrapped = (:[]) <$> (Div    <$> bNoUnwrap b <*> bs')
+             in fromMaybe [b] wrapped
+-}
+bUnwrap' :: Block -> [Block]
+bUnwrap' b = case b of
+  CodeBlock (i, cs, as) x | "unwrap" `elem` cs ->
+    let content = bUnwrap (blocks (readJson def x))
+     in case (i, filter (/= "unwrap") cs, as) of
+             ("", [],  []) -> content
+             (_,  cs', _)  -> [Div (i, cs', as) content]
+  _                                            -> everywhere' (mkT bUnwrap) [b]
+
+bUnwrap :: [Block] -> [Block]
+bUnwrap = concatMap bUnwrap'
 
 -- Inline-level functions
 
 iAttrs :: Inline -> Maybe Attr
 iAttrs (Code as _) = Just as
 iAttrs _           = Nothing
-
 
 iNoUnwrap :: Inline -> Maybe Attr
 iNoUnwrap b = iAttrs b >>= noUnwrap
