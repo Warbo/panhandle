@@ -53,7 +53,7 @@ bUnwrap' b = case b of
      in case (i, filter (/= "unwrap") cs, as) of
              ("", [],  []) -> content
              (_,  cs', _)  -> [Div (i, cs', as) content]
-  _                                            -> everywhere' (mkT bUnwrap) [b]
+  _                                            -> gmapM (mkM bUnwrap') b
 
 bUnwrap :: [Block] -> [Block]
 bUnwrap = concatMap bUnwrap'
