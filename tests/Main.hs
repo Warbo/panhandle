@@ -12,15 +12,15 @@ import Test.QuickCheck
 import Test.Tasty (defaultMain, testGroup)
 import Test.Tasty.QuickCheck
 
-main = do defaultMain $ testGroup "All tests" [
-              testProperty "noUnwrap ignores no .wrap" noUnwrapIgnore
-            , testProperty "noUnwrap removes .wrap"    noUnwrapRemove
-            , testProperty "Block IDs remain"          bWrappedId
-            , testProperty "Block classes remain"      bWrappedCls
-            , testProperty "Block attributes remain"   bWrappedAttr
-            --, testProperty "No spurious divs"          bUnwrapped
-            , lazyProperty "Pandoc JSON parses"        canParseJson
-            ]
+main = defaultMain $ testGroup "All tests" [
+           testProperty "noUnwrap ignores no .wrap" noUnwrapIgnore
+         , testProperty "noUnwrap removes .wrap"    noUnwrapRemove
+         , testProperty "Block IDs remain"          bWrappedId
+         , testProperty "Block classes remain"      bWrappedCls
+         , testProperty "Block attributes remain"   bWrappedAttr
+         --, testProperty "No spurious divs"          bUnwrapped
+         , lazyProperty "Pandoc JSON parses"        canParseJson
+         ]
 
 noUnwrapIgnore x ys zs = let ys' = filter (/= "unwrap") ys
                           in isNothing (noUnwrap (x, ys', zs))

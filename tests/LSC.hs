@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, DeriveDataTypeable #-}
+{-# LANGUAGE RankNTypes #-}
 module LSC where
 
 import Data.Data
