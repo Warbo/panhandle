@@ -39,13 +39,7 @@ readJson ro s = case readJSON ro s of
 #else
 readJson = readJSON
 #endif
-{-
-bUnwrap :: Block -> [Block]
-bUnwrap b = let bs      = blocks <$> (readJson def <$> bCode b)
-                bs'     = concatMap bUnwrap <$> bs
-                wrapped = (:[]) <$> (Div    <$> bNoUnwrap b <*> bs')
-             in fromMaybe [b] wrapped
--}
+
 bUnwrap' :: Block -> [Block]
 bUnwrap' b = case b of
   CodeBlock (i, cs, as) x | "unwrap" `elem` cs ->
