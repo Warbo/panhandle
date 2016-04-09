@@ -49,6 +49,3 @@ instance Serial Double where
 
 instance Serial Format where
   series = cons1 Format
-
-instance (Arbitrary a, Arbitrary b, Ord a) => Arbitrary (Map a b) where
-  arbitrary = fmap fromList arbitrary
