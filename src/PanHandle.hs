@@ -6,6 +6,7 @@ import Data.Data
 import Data.Generics
 import Data.Maybe
 import Text.Pandoc
+import Text.Pandoc.JSON
 import Text.Pandoc.Walk (walk, query)
 
 -- Generic (Inline and Block) functions
@@ -79,3 +80,5 @@ iUnwrap i = let is      = inlines <$> (readJson def <$> iCode i)
 
 transform :: Pandoc -> Pandoc
 transform = topDown iUnwrap . topDown bUnwrap
+
+panhandleMain = toJSONFilter transform
