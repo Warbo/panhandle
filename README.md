@@ -17,6 +17,12 @@ To use PanHandle, invoke it as a Pandoc "filter", like this:
 
 `pandoc --filter ./panhandle input_file > output_file`
 
+You can also run it standalone, but note that its stdio should be in Pandoc JSON
+format, which you can convert to/from using `pandoc -t json`/`pandoc -f json`.
+
+To reduce the chance for error, ensure the version of Pandoc you're using to
+generate/consume the JSON is the same as the version PanHandle's built with.
+
 ## Intro ##
 
 PanHandle is a simple Haskell script using PanDoc. It allows code blocks and
@@ -30,8 +36,10 @@ option to Pandoc.
 
 For example, this Markdown list:
 
-     - A Markdown
-     - List
+```
+ - A Markdown
+ - List
+```
 
 Converts to this JSON:
 
@@ -41,22 +49,26 @@ Converts to this JSON:
 
 Which we can splice into a document:
 
-    Mumble mumble
+````
+Mumble mumble
 
-    ```{.unwrap}
-    [{"unMeta":{}},[{"t":"BulletList","c":[[{"t":"Plain","c":[{"t":"Str","c":"A"},{"t":"Space","c":[]},{"t":"Str","c":"Markdown"}]}],[{"t":"Plain","c":[{"t":"Str","c":"List"}]}]]}]]
-    ```
+```{.unwrap}
+[{"unMeta":{}},[{"t":"BulletList","c":[[{"t":"Plain","c":[{"t":"Str","c":"A"},{"t":"Space","c":[]},{"t":"Str","c":"Markdown"}]}],[{"t":"Plain","c":[{"t":"Str","c":"List"}]}]]}]]
+```
 
-    Groan groan
+Groan groan
+````
 
 To give:
 
-    Mumble mumble
+````
+Mumble mumble
 
-     - A Markdown
-     - List
+ - A Markdown
+ - List
 
-    Groan groan
+Groan groan
+````
 
 ## Usage Notes ##
 
@@ -161,4 +173,5 @@ created to augment PanPipe. PanPipe can send the contents of code blocks to the
 stdin of a UNIX shell command, and dump the stdout back into the block.
 
 PanHandle allows these results to escape their blocks and become part of the
-document.
+document. This makes it easy to write documents containing code to
+programmatically fetch/generate parts of themselves.
