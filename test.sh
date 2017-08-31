@@ -1,7 +1,9 @@
-#! /usr/bin/env nix-shell
-#! nix-shell -i bash -p bash pandoc
+#!/usr/bin/env bash
 
-hsConfig
+function run {
+    EXPR=$(cabal2nix ./.)
+    nix-shell -p "(haskellPackages.callPackage ($EXPR) {})" --run 'panhandle'
+}
 
 MARKDOWN="*foo*"
 echo "Got Markdown '$MARKDOWN'"
@@ -16,8 +18,8 @@ echo "Got unwrap '$UNWRAP'"
 META=$(echo "$UNWRAP" | pandoc -f markdown -t json)
 echo "Got meta '$META'"
 
-UNWRAP=$(echo "$META" | cabal run -v0) || {
-    echo "Failed to unwrap" >> /dev/stderr
+UNWRAP=$(echo "$META" | run) || {
+    echo "Failed to unwrap" 1>&2
     exit 1
 }
 echo "Got unwrapped '$UNWRAP'"
@@ -26,6 +28,6 @@ FINAL=$(echo "$UNWRAP" | pandoc -f json -t html)
 echo "Got HTML '$FINAL'"
 
 echo "$FINAL" | grep '<em>foo</em>' || {
-    echo "Didn't unwrap *foo* in '$FINAL'" >> /dev/stderr
+    echo "Didn't unwrap *foo* in '$FINAL'" 1>&2
     exit 1
 }
