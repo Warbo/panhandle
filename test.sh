@@ -1,8 +1,20 @@
 #!/usr/bin/env bash
+set -e
+set -o pipefail
+
+command -v pandoc || {
+    echo "Couldn't find pandoc binary, aborting" 1>&2
+    exit 1
+}
 
 function run {
-    EXPR=$(cabal2nix ./.)
-    nix-shell -p "(haskellPackages.callPackage ($EXPR) {})" --run 'panhandle'
+    if command -v cabal2nix
+    then
+        EXPR=$(cabal2nix ./.)
+        nix-shell -p "(haskellPackages.callPackage ($EXPR) {})" --run 'panhandle'
+    else
+        cabal run panhandle
+    fi
 }
 
 MARKDOWN="*foo*"

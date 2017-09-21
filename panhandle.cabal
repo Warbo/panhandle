@@ -9,7 +9,7 @@ author:              Chris Warburton
 maintainer:          chriswarbo@gmail.com
 category:            Text
 build-type:          Simple
-extra-source-files:  README.md
+extra-source-files:  README.md, test.sh
 cabal-version:       >=1.10
 
 source-repository head
@@ -37,6 +37,7 @@ test-suite tests
   type:                exitcode-stdio-1.0
   hs-source-dirs:      tests
   main-is:             Main.hs
+  other-modules:       LSC, Generators
   build-depends:       base       >= 4.7
                      , panhandle
                      , QuickCheck
