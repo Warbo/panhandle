@@ -19,8 +19,12 @@ with rec {
 
 with pkgSets.pinnedConfig.nixpkgs1709.lib;
 with rec {
+  skipBroken = f: name: if hasPrefix "ghcjs" name || hasPrefix "lts" name
+    then (_: null)
+    else f;
+
   # "self" is a customised nixpkgs set, "super" is the corresponding original
-  buildForNixpkgs = self: super: mapAttrs (_: buildForHaskell self)
+  buildForNixpkgs = self: super: mapAttrs (skipBroken (buildForHaskell self))
                                           super.haskell.packages;
 
   buildForHaskell = pkgs: hsPkgs: rec {
