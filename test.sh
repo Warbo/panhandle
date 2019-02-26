@@ -13,7 +13,7 @@ function run {
         EXPR=$(cabal2nix ./.)
         nix-shell -p "(haskellPackages.callPackage ($EXPR) {})" --run 'panhandle'
     else
-        cabal run panhandle
+        cabal run -v0 panhandle
     fi
 }
 
