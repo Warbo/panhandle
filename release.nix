@@ -1,21 +1,11 @@
-# Used for building and testing on Hydra
-
-# Provides a bunch of nixpkgs versions, augmented with useful helper functions
-with builtins;
-with rec {
-  pkgs    = import <nixpkgs> {};
-  helpers = pkgs.nix-helpers or import (pkgs.fetchgit {
-    url    = http://chriswarbo.net/git/nix-helpers.git;
-    rev    = "6227a40";
-    sha256 = "077kcal167ixwjj41sqrndd5pwvyavs20h826qx3ijl2i02wmwxs";
-  });
+# Used for building and testing on build servers like Hydra
+with import ./nixpkgs.nix;
+with lib;
+with {
+  nixpkgsVersion = fileContents (path + "/.version");
+  ghcVersion     = haskellPackages.ghc.version;
 };
-with pkgs // helpers // pkgs.lib;
-collapseAttrs (haskellRelease {
-  name        = "panhandle";
-  dir         = ./.;
-  hackageSets = {
-    nixpkgs1709 = [ "ghc7103" ];
-    nixpkgs1803 = [ "ghc7103" ];
-  };
-})
+{
+  "nixpkgs${nixpkgsVersion}-ghc${ghcVersion}-panhandle" =
+    haskellPackages.panhandle;
+}
