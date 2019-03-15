@@ -169,8 +169,9 @@ They *will not* join together for emphasis, like this:
 ### PanPipe ###
 
 PanHandle may be useful to you as a standalone script, but it was originally
-created to augment PanPipe. PanPipe can send the contents of code blocks to the
-stdin of a UNIX shell command, and dump the stdout back into the block.
+created to augment [PanPipe](http://chriswarbo.net/git/panpipe). PanPipe can
+send the contents of code blocks to the stdin of a UNIX shell command, and dump
+the stdout back into the block.
 
 PanHandle allows these results to escape their blocks and become part of the
 document. This makes it easy to write documents containing code to
