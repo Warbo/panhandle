@@ -1,39 +1,21 @@
 # Used for building and testing on build servers like Hydra
-with builtins;
-with import ./nixpkgs.nix;
-with lib;
-with {
-  nixpkgsVersion = fileContents (path + "/.version");
-  ghcVersion     = haskellPackages.ghc.version;
-};
-{
-  "nixpkgs${nixpkgsVersion}-ghc${ghcVersion}-panhandle" =
-    haskellPackages.panhandle;
+with import ./.;
+panhandle.components.exes // {
+  inherit (panhandle.components) library;
+  tests = {
+    # FIXME: error: attribute 'configFiles' missing, at /nix/store/5sl7sk4pq1di6ainl5p8rzs98rn6q24v-haskell.nix/builder/make-config-files.nix:75:16
+    #unit        = panhandle.components.tests.tests;
 
-  "tests" = runCommand "panhandle-tests"
-    {
-      buildInputs = [
-        cabal-install
-        haskellPackages.pandoc
-
-        # We include panhandle, since this will guarantee our dependencies
-        (haskellPackages.ghcWithPackages (h: [ h.panhandle ]))
-      ];
-      dir         = filterSource
-        (path: _:
-          with { f = baseNameOf path; };
-          !(hasSuffix ".nix" f || elem f [
-            ".git" ".gitignore" ".issues" "dist" "dist-newstyle"
-            "README.md" "result"
-          ]))
-        ./.;
-    }
-    ''
-      export HOME="$PWD"
-      cp -r "$dir" dir
-      chmod 777 -R dir
-      cd dir
-      ./test.sh
-      echo pass > "$out"
-    '';
+    integration = (import <nixpkgs> {}).runCommand "panhandle-integration-tests"
+      {
+        buildInputs = [
+          pandoc.components.exes.pandoc
+          panhandle.components.exes.panhandle
+        ];
+      }
+      ''
+        "${./test.sh}"
+        echo pass > "$out"
+      '';
+  };
 }

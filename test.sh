@@ -7,16 +7,6 @@ command -v pandoc || {
     exit 1
 }
 
-function run {
-    if command -v cabal2nix
-    then
-        EXPR=$(cabal2nix ./.)
-        nix-shell -p "(haskellPackages.callPackage ($EXPR) {})" --run 'panhandle'
-    else
-        cabal run -v0 panhandle
-    fi
-}
-
 MARKDOWN="*foo*"
 echo "Got Markdown '$MARKDOWN'"
 
@@ -30,7 +20,7 @@ echo "Got unwrap '$UNWRAP'"
 META=$(echo "$UNWRAP" | pandoc -f markdown -t json)
 echo "Got meta '$META'"
 
-UNWRAP=$(echo "$META" | run) || {
+UNWRAP=$(echo "$META" | panhandle) || {
     echo "Failed to unwrap" 1>&2
     exit 1
 }
