@@ -11,7 +11,7 @@ with rec {
   haskellNixSrc = fetchTarball {
     name   = "nixpkgs1909";
     url    = https://github.com/Warbo/haskell.nix/archive/499a761.tar.gz;
-    sha256 = "0p8paz9ls9mdlm606ivrddc1s087fv1bgdayww4bvr7fnwjgj4d4";
+    sha256 = "1pnkywswfa71hgc2c3g2cijfk9nysbpyh6jjh455h810n4yhs522";
   };
 
   pkgs = import nixpkgsSrc { overlays = import "${haskellNixSrc}/overlays"; };
