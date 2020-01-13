@@ -1,5 +1,5 @@
 name:                panhandle
-version:             0.3.0.0
+version:             0.4.0.0
 synopsis:            Pandoc filter to unwrap nested blocks
 description:         Pandoc filter to splice together nested documents
 homepage:            http://chriswarbo.net/projects/activecode
@@ -20,14 +20,15 @@ library
   hs-source-dirs:      src
   exposed-modules:     PanHandle
   default-language:    Haskell2010
-  build-depends:       base   >=4.7  && <4.10
-                     , pandoc >=1.17 && <1.18
-                     , pandoc-types
-                     , syb
+  build-depends:       base   >= 4.7
+                     , pandoc >= 2.9
+                     , pandoc-types == 1.20.*
+                     , syb >= 0.7
+                     , text >= 1.2
 
 executable panhandle
   main-is:             Main.hs
-  build-depends:       base >=4.7 && <4.10
+  build-depends:       base >=4.7
                      , panhandle
   hs-source-dirs:      panhandle
   default-language:    Haskell2010
@@ -40,14 +41,14 @@ test-suite tests
   other-modules:       LSC, Generators
   build-depends:       base       >= 4.7
                      , panhandle
-                     , QuickCheck
-                     , tasty      >= 0.11.2.1
-                     , tasty-quickcheck
+                     , QuickCheck >= 2.13
+                     , tasty      >= 1.2
+                     , tasty-quickcheck >= 0.10
                      , lazysmallcheck2012
-                     , tagged
-                     , containers >=0.5  && <0.6
-                     , pandoc
-                     , pandoc-types
-                     , derive
-                     , syb
-                     , aeson
+                     , tagged >= 0.8
+                     , containers >= 0.6
+                     , pandoc >= 2.9
+                     , pandoc-types == 1.20.*
+                     , derive >= 2.6
+                     , syb >= 0.7
+                     , aeson >= 1.4

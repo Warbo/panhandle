@@ -1,10 +1,12 @@
-{-# LANGUAGE CPP, RankNTypes #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 module PanHandle where
 
 import Control.Applicative
 import Data.Data
 import Data.Generics
 import Data.Maybe
+import Data.Text (Text)
 import Text.Pandoc
 import Text.Pandoc.JSON
 import Text.Pandoc.Walk (walk, query)
@@ -25,21 +27,17 @@ bAttrs _                = Nothing
 bNoUnwrap :: Block -> Maybe Attr
 bNoUnwrap b = bAttrs b >>= noUnwrap
 
-bCode :: Block -> Maybe String
+bCode :: Block -> Maybe Text
 bCode (CodeBlock _ c) = Just c
 bCode _               = Nothing
 
 blocks :: Pandoc -> [Block]
 blocks (Pandoc _ bs) = bs
 
-readJson :: ReaderOptions -> String -> Pandoc
-#if MIN_VERSION_pandoc(1,14,0)
-readJson ro s = case readJSON ro s of
+readJson :: ReaderOptions -> Text -> Pandoc
+readJson ro s = case runPure (readJSON ro s) of
                      Left  x -> error (show x)
                      Right x -> x
-#else
-readJson = readJSON
-#endif
 
 bUnwrap' :: Block -> [Block]
 bUnwrap' b = case b of
@@ -62,7 +60,7 @@ iAttrs _           = Nothing
 iNoUnwrap :: Inline -> Maybe Attr
 iNoUnwrap b = iAttrs b >>= noUnwrap
 
-iCode :: Inline -> Maybe String
+iCode :: Inline -> Maybe Text
 iCode (Code _ c) = Just c
 iCode _          = Nothing
 

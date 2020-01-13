@@ -1,0 +1,7 @@
+packages: *.cabal
+write-ghc-environment-files: never
+source-repository-package
+    type: git
+    location: http://chriswarbo.net/git/lazy-smallcheck-2012.git
+    tag: f138ac3
+    --sha256: 1m99nha131hqzi6yx6189rvcska4wvz768m1n5kq4mrw9sk50nxc
