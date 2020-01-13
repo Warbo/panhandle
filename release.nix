@@ -14,7 +14,7 @@ panhandle.components.exes // {
         ];
       }
       ''
-        "${./test.sh}"
+        bash "${./test.sh}"
         echo pass > "$out"
       '';
   };
