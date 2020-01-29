@@ -3,5 +3,5 @@ write-ghc-environment-files: never
 source-repository-package
     type: git
     location: http://chriswarbo.net/git/lazy-smallcheck-2012.git
-    tag: f138ac3
-    --sha256: 1m99nha131hqzi6yx6189rvcska4wvz768m1n5kq4mrw9sk50nxc
+    tag: 01b536e
+    --sha256: 05d83z6dcb8651rsnkj84kk95paz64vgy616fr3qi8b5nfmccy4l
