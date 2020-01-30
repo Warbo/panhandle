@@ -3,6 +3,7 @@
 module Generators where
 
 import Data.DeriveTH
+import Data.Text (pack, Text, unpack)
 import Test.QuickCheck
 import Text.Pandoc
 import Data.Derive.Arbitrary
@@ -49,3 +50,10 @@ instance Serial Double where
 
 instance Serial Format where
   series = cons1 Format
+
+instance Serial Text where
+  series = cons1 pack
+
+instance Arbitrary Text where
+  arbitrary = fmap pack arbitrary
+  shrink    = fmap pack . shrink . unpack

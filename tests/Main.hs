@@ -1,18 +1,22 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Generators
-import Data.Aeson
-import Data.Char
-import Data.Maybe
-import Debug.Trace
-import PanHandle
-import LSC
-import Text.Pandoc
-import Text.Pandoc.UTF8
+import           Generators
+import           Data.Aeson
+import qualified Data.ByteString.Lazy as LB
+import           Data.Char
+import           Data.Maybe
+import qualified Data.Text          as Text
+import qualified Data.Text.Encoding as Enc
+import           Debug.Trace
+import           PanHandle
+import           LSC
+import           Text.Pandoc
+import           Text.Pandoc.UTF8
 import qualified Test.LazySmallCheck2012 as LSC
-import Test.QuickCheck
-import Test.Tasty (defaultMain, testGroup)
-import Test.Tasty.QuickCheck
+import           Test.QuickCheck
+import           Test.Tasty (defaultMain, testGroup)
+import           Test.Tasty.QuickCheck
 
 main = defaultMain $ testGroup "All tests" [
            testProperty "noUnwrap ignores no .wrap" noUnwrapIgnore
@@ -26,7 +30,7 @@ main = defaultMain $ testGroup "All tests" [
          , testProperty "Can read empty doc"        canReadPandoc
          ]
 
-noUnwrapIgnore x ys zs = let ys' = filter (/= "unwrap") ys
+noUnwrapIgnore x ys zs = let ys' = stripUnwrap ys
                           in isNothing (noUnwrap (x, ys', zs))
 
 noUnwrapRemove x pre post zs =
@@ -38,23 +42,24 @@ noUnwrapRemove x pre post zs =
            all (`elem` zs') zs,
            all (`elem` zs)  zs']
 
-bWrappedId id pre post as b = not (null id) ==>
+bWrappedId id pre post as b = nonEmpty id ==>
   case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) b) of
        [Div (id', _, _) _] -> id' == id
        _                   -> False
 
-bWrappedCls id pre post as b = any (not . null) (stripUnwrap (pre ++ post)) ==>
+bWrappedCls id pre post as b = any nonEmpty (stripUnwrap (pre ++ post)) ==>
   let cls = stripUnwrap (pre ++ post)
    in case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) b) of
            [Div (_, cls', _) _] -> all (`elem` cls) cls' && all (`elem` cls') cls
            _                    -> False
 
-bWrappedAttr id pre post as b = any (\(x, y) -> not (null x || null y)) as ==>
-  case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) b) of
-       [Div (_, _, as') _] -> all (`elem` as) as' && all (`elem` as') as
-       _                   -> False
+bWrappedAttr id pre post as b = any neitherEmpty as ==>
+    case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) b) of
+         [Div (_, _, as') _] -> all (`elem` as) as' && all (`elem` as') as
+         _                   -> False
+  where neitherEmpty (x, y) = not (Text.null x || Text.null y)
 
-encodeDoc = toStringLazy . Data.Aeson.encode
+encodeDoc = Enc.decodeUtf8 . LB.toStrict . Data.Aeson.encode
 
 canParseJson :: Pandoc -> Bool
 canParseJson p = readJson def (encodeDoc p) == p
@@ -63,8 +68,9 @@ canParseAeson :: Pandoc -> Bool
 canParseAeson p = Data.Aeson.decode (Data.Aeson.encode p) == Just p
 
 canReadPandoc :: Bool
-canReadPandoc = case readJson def "[{\"unMeta\":{}},[]]" of
+canReadPandoc = case readJson def empty of
                   Pandoc _ _ -> True
+  where empty = "{\"pandoc-api-version\":[1,20],\"meta\":{},\"blocks\":[]}"
 
 bUnwrapped :: Pandoc -> Bool
 bUnwrapped d@(Pandoc _ bs) =
@@ -74,3 +80,5 @@ bUnwrapped d@(Pandoc _ bs) =
 stripUnwrap = filter (/= "unwrap")
 
 addUnwrap xs ys = stripUnwrap xs ++ ["unwrap"] ++ stripUnwrap ys
+
+nonEmpty = not . Text.null
