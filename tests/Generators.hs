@@ -1,28 +1,25 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Generators where
 
-import Data.DeriveTH
 import Data.Text (pack, Text, unpack)
 import Test.QuickCheck
 import Text.Pandoc
-import Data.Derive.Arbitrary
 import Data.Map
+import GHC.Generics (Generic)
+import Test.QuickCheck.Arbitrary.Generic
 
-$( derive makeArbitrary ''Block )
-$( derive makeArbitrary ''Inline )
-$( derive makeArbitrary ''QuoteType )
-$( derive makeArbitrary ''MathType )
-$( derive makeArbitrary ''ListNumberStyle )
-$( derive makeArbitrary ''Citation )
-$( derive makeArbitrary ''ListNumberDelim )
-$( derive makeArbitrary ''CitationMode )
-$( derive makeArbitrary ''Format )
-$( derive makeArbitrary ''Alignment )
-$( derive makeArbitrary ''Pandoc )
-$( derive makeArbitrary ''Meta )
-$( derive makeArbitrary ''MetaValue )
-
+deriving instance Arbitrary Block via (GenericArbitrary Block)
+deriving instance Arbitrary Inline via (GenericArbitrary Inline)
+deriving instance Arbitrary QuoteType via (GenericArbitrary QuoteType)
+deriving instance Arbitrary MathType via (GenericArbitrary MathType)
+deriving instance Arbitrary ListNumberStyle via (GenericArbitrary ListNumberStyle)
+deriving instance Arbitrary Citation via (GenericArbitrary Citation)
+deriving instance Arbitrary ListNumberDelim via (GenericArbitrary ListNumberDelim)
+deriving instance Arbitrary CitationMode via (GenericArbitrary CitationMode)
+deriving instance Arbitrary Format via (GenericArbitrary Format)
+deriving instance Arbitrary Alignment via (GenericArbitrary Alignment)
+deriving instance Arbitrary Pandoc via (GenericArbitrary Pandoc)
+deriving instance Arbitrary Meta via (GenericArbitrary Meta)
+deriving instance Arbitrary MetaValue via (GenericArbitrary MetaValue)
 
 instance Arbitrary Text where
   arbitrary = fmap pack arbitrary
