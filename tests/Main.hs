@@ -10,10 +10,8 @@ import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Enc
 import           Debug.Trace
 import           PanHandle
-import           LSC
 import           Text.Pandoc
 import           Text.Pandoc.UTF8
-import qualified Test.LazySmallCheck2012 as LSC
 import           Test.QuickCheck
 import           Test.Tasty (defaultMain, testGroup)
 import           Test.Tasty.QuickCheck
@@ -24,9 +22,9 @@ main = defaultMain $ testGroup "All tests" [
          , testProperty "Block IDs remain"          bWrappedId
          , testProperty "Block classes remain"      bWrappedCls
          , testProperty "Block attributes remain"   bWrappedAttr
-         , lazyProperty "No spurious divs"          bUnwrapped
-         , lazyProperty "Pandoc JSON parses"        canParseJson
-         , lazyProperty "Pandoc Aeson parses"       canParseAeson
+         , testProperty "No spurious divs"          bUnwrapped
+         , testProperty "Pandoc JSON parses"        canParseJson
+         , testProperty "Pandoc Aeson parses"       canParseAeson
          , testProperty "Can read empty doc"        canReadPandoc
          ]
 

@@ -44,7 +44,6 @@ test-suite tests
                      , bytestring >= 0.10
                      , containers >= 0.6
                      , derive >= 2.6
-                     , lazysmallcheck2012
                      , pandoc >= 2.9
                      , pandoc-types == 1.20.*
                      , panhandle

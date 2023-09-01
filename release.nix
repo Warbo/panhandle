@@ -1,16 +1,10 @@
 # Used for building and testing on build servers like Hydra
-{
-  nixpkgs ? import (fetchTarball {
-    name   = "nixpkgs1909";
-    url    = https://github.com/NixOS/nixpkgs/archive/19.09.tar.gz;
-    sha256 = "0mhqhq21y5vrr1f30qd2bvydv4bbbslvyzclhw0kdxmkgg3z4c92";
-  }) {}
-}:
-with {
-  pkgs = nixpkgs.haskellPackages.override {
-    overrides = self: super: {
-      panhandle = self.callPackage (nixpkgs.callPackage ./. {}) {};
-    };
-  };
-};
-pkgs.panhandle
+{ nixpkgs ? import (fetchTarball {
+  name = "nixpkgs2305";
+  url = "https://github.com/NixOS/nixpkgs/archive/23.05.tar.gz";
+  sha256 = "10wn0l08j9lgqcw8177nh2ljrnxdrpri7bp0g7nvrsn9rkawvlbf";
+}) {
+  config = { };
+  overlays = [ ];
+} }:
+nixpkgs.haskellPackages.callPackage (nixpkgs.callPackage ./. { }) { }
