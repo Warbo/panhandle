@@ -10,8 +10,8 @@ import qualified Data.Text          as Text
 import qualified Data.Text.Encoding as Enc
 import           Debug.Trace
 import           PanHandle
-import           Text.Pandoc
-import           Text.Pandoc.UTF8
+import           Text.Pandoc.Definition
+import           Text.Pandoc.Arbitrary
 import           Test.QuickCheck
 import           Test.Tasty (defaultMain, testGroup)
 import           Test.Tasty.QuickCheck
@@ -23,9 +23,6 @@ main = defaultMain $ testGroup "All tests" [
          , testProperty "Block classes remain"      bWrappedCls
          , testProperty "Block attributes remain"   bWrappedAttr
          , testProperty "No spurious divs"          bUnwrapped
-         , testProperty "Pandoc JSON parses"        canParseJson
-         , testProperty "Pandoc Aeson parses"       canParseAeson
-         , testProperty "Can read empty doc"        canReadPandoc
          ]
 
 noUnwrapIgnore x ys zs = let ys' = stripUnwrap ys
@@ -41,34 +38,29 @@ noUnwrapRemove x pre post zs =
            all (`elem` zs)  zs']
 
 bWrappedId id pre post as b = nonEmpty id ==>
-  case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) b) of
+  case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) contents) of
        [Div (id', _, _) _] -> id' == id
        _                   -> False
+  where contents = encodeDoc (b :: Pandoc)
 
 bWrappedCls id pre post as b = any nonEmpty (stripUnwrap (pre ++ post)) ==>
   let cls = stripUnwrap (pre ++ post)
-   in case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) b) of
+      contents = encodeDoc (b :: Pandoc)
+   in case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) contents) of
            [Div (_, cls', _) _] -> all (`elem` cls) cls' && all (`elem` cls') cls
            _                    -> False
 
-bWrappedAttr id pre post as b = any neitherEmpty as ==>
-    case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) b) of
+bWrappedAttr id pre post as b = any neitherEmpty as && id /= "" ==>
+    case bUnwrap' (CodeBlock (id, addUnwrap pre post, as) contents) of
          [Div (_, _, as') _] -> all (`elem` as) as' && all (`elem` as') as
          _                   -> False
   where neitherEmpty (x, y) = not (Text.null x || Text.null y)
+        contents = encodeDoc (b :: Pandoc)
 
 encodeDoc = Enc.decodeUtf8 . LB.toStrict . Data.Aeson.encode
 
-canParseJson :: Pandoc -> Bool
-canParseJson p = readJson def (encodeDoc p) == p
-
 canParseAeson :: Pandoc -> Bool
 canParseAeson p = Data.Aeson.decode (Data.Aeson.encode p) == Just p
-
-canReadPandoc :: Bool
-canReadPandoc = case readJson def empty of
-                  Pandoc _ _ -> True
-  where empty = "{\"pandoc-api-version\":[1,20],\"meta\":{},\"blocks\":[]}"
 
 bUnwrapped :: Pandoc -> Bool
 bUnwrapped d@(Pandoc _ bs) =

@@ -3,11 +3,14 @@
 module PanHandle where
 
 import Control.Applicative
+import Data.Aeson (eitherDecodeStrict)
 import Data.Data
 import Data.Generics
 import Data.Maybe
 import Data.Text (Text)
-import Text.Pandoc
+import Data.Text.Encoding (encodeUtf8)
+import Text.Pandoc.Definition
+import Text.Pandoc.Generic (topDown)
 import Text.Pandoc.JSON
 import Text.Pandoc.Walk (walk, query)
 
@@ -34,15 +37,15 @@ bCode _               = Nothing
 blocks :: Pandoc -> [Block]
 blocks (Pandoc _ bs) = bs
 
-readJson :: ReaderOptions -> Text -> Pandoc
-readJson ro s = case runPure (readJSON ro s) of
-                     Left  x -> error (show x)
-                     Right x -> x
+readJson :: Text -> Pandoc
+readJson s = case eitherDecodeStrict (encodeUtf8 s) of
+                  Left  x -> error (show x)
+                  Right x -> x
 
 bUnwrap' :: Block -> [Block]
 bUnwrap' b = case b of
   CodeBlock (i, cs, as) x | "unwrap" `elem` cs ->
-    let content = bUnwrap (blocks (readJson def x))
+    let content = bUnwrap (blocks (readJson x))
      in case (i, filter (/= "unwrap") cs, as) of
              ("", [],  []) -> content
              (_,  cs', _)  -> [Div (i, cs', as) content]
@@ -71,7 +74,7 @@ inlines (Pandoc _ bs) = let f (Plain x) = x
                          in concatMap f bs
 
 iUnwrap :: Inline -> Inline
-iUnwrap i = let is      = inlines <$> (readJson def <$> iCode i)
+iUnwrap i = let is      = inlines <$> (readJson <$> iCode i)
                 is'     = map iUnwrap <$> is
                 wrapped = Span    <$> iNoUnwrap i <*> is'
              in fromMaybe i wrapped
