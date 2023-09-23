@@ -5,27 +5,17 @@
 }) {
   config = { };
   overlays = [ ];
-}, haskellPackages ? nixpkgs.haskellPackages, lib ? nixpkgs.lib }:
+}, haskellPackages ? nixpkgs.haskellPackages }:
 with rec {
-  inherit (lib) functionArgs setFunctionArgs;
-
-  # Runs cabal2nix on this project's .cabal file. The resulting derivation
-  # outputs a default.nix file defining a function, which itself defines a
-  # derivation that builds this project.
-  panhandle-nix = haskellPackages.haskellSrc2nix {
-    name = "panhandle";
-    src = lib.cleanSource ./.;
-  };
-
-  # Uses import-from-derivation to load the function outputted by panhandle-nix,
+  # Uses import-from-derivation to load the function outputted by cabal2nix,
   # and calls it with arguments (dependencies) from haskellPackages.
-  rawDrv = haskellPackages.callPackage panhandle-nix { };
+  rawDrv = haskellPackages.callCabal2nix "panhandle" ./. { };
 
   # This patches the dependencies of rawDrv to include libopcodes
   fixed = rawDrv.overrideAttrs
     (old: { buildInputs = old.buildInputs ++ [ nixpkgs.libopcodes ]; }) // {
       # Include these in the result, to make overriding easier
-      inherit haskellPackages lib nixpkgs panhandle-nix rawDrv;
+      inherit haskellPackages nixpkgs rawDrv;
     };
 };
 fixed
