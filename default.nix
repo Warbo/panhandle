@@ -9,18 +9,23 @@
 with rec {
   inherit (lib) functionArgs setFunctionArgs;
 
-  # Raw cabal2nix result (a function returning a derivation)
-  raw = haskellPackages.callCabal2nix "panhandle" (lib.cleanSource ./.);
+  # Runs cabal2nix on this project's .cabal file. The resulting derivation
+  # outputs a default.nix file defining a function, which itself defines a
+  # derivation that builds this project.
+  panhandle-nix = haskellPackages.haskellSrc2nix {
+    name = "panhandle";
+    src = lib.cleanSource ./.;
+  };
 
-  # Wrapper around raw, which patches the resulting derivation
-  fixed = (args:
-    (raw args).overrideAttrs
+  # Uses import-from-derivation to load the function outputted by panhandle-nix,
+  # and calls it with arguments (dependencies) from haskellPackages.
+  rawDrv = haskellPackages.callPackage panhandle-nix { };
+
+  # This patches the dependencies of rawDrv to include libopcodes
+  fixed = rawDrv.overrideAttrs
     (old: { buildInputs = old.buildInputs ++ [ nixpkgs.libopcodes ]; }) // {
-      # Include these in the result, in case we want to override
-      inherit build raw;
-    });
-
-  # Same as fixed, but inherits the function metadata of raw
-  build = setFunctionArgs fixed raw;
+      # Include these in the result, to make overriding easier
+      inherit haskellPackages lib nixpkgs panhandle-nix rawDrv;
+    };
 };
-build { }
+fixed
