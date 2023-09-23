@@ -38,7 +38,7 @@ test-suite tests
   type:                exitcode-stdio-1.0
   hs-source-dirs:      tests
   main-is:             Main.hs
-  other-modules:       LSC, Generators
+  other-modules:       Generators
   build-depends:       base       >= 4.7
                      , aeson >= 1.4
                      , bytestring >= 0.10
