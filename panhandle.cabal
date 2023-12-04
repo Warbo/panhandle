@@ -1,5 +1,5 @@
 name:                panhandle
-version:             0.5.0.0
+version:             0.5.1.0
 synopsis:            Pandoc filter to unwrap nested blocks
 description:         Pandoc filter to splice together nested documents
 homepage:            http://chriswarbo.net/projects/activecode
