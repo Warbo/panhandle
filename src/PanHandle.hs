@@ -82,4 +82,5 @@ iUnwrap i = let is      = inlines <$> (readJson <$> iCode i)
 transform :: Pandoc -> Pandoc
 transform = topDown iUnwrap . topDown bUnwrap
 
+panhandleMain :: IO ()
 panhandleMain = toJSONFilter transform
